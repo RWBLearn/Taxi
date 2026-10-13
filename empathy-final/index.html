@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Тренажёр эмпатии · ОКК-проверка</title>
+<style>
+  :root{
+    --purple:#7B2FF7;
+    --purple-dark:#5A1FBF;
+    --purple-soft:#F3EBFF;
+    --purple-line:#E3D2FF;
+    --text:#1F2937;
+    --muted:#6B7280;
+    --white:#FFFFFF;
+    --green:#15803D;
+    --green-bg:#DCFCE7;
+    --green-border:#86EFAC;
+    --green-text:#14532D;
+    --red:#B91C1C;
+    --red-bg:#FEE2E2;
+    --red-border:#FCA5A5;
+    --red-text:#7F1D1D;
+    --orange:#B45309;
+    --orange-bg:#FEF3C7;
+    --orange-border:#FCD34D;
+    --orange-text:#78350F;
+    --border:#E5E7EB;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    background:linear-gradient(160deg,#F8F5FF 0%,#EFE6FF 100%);
+    color:var(--text);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{max-width:820px;margin:0 auto;padding:28px 20px 60px;}
+
+  .app-header{margin-bottom:22px;}
+  .app-header h1{font-size:25px;margin:0 0 4px;letter-spacing:-0.3px;}
+  .app-header p{margin:0 0 14px;color:var(--muted);font-size:14px;}
+  .progress-wrap{display:flex;align-items:center;gap:12px;}
+  .progress{flex:1;height:8px;background:#E9DDFF;border-radius:99px;overflow:hidden;}
+  .progress-bar{height:100%;width:0%;background:linear-gradient(90deg,#9B5DE5,#7B2FF7);border-radius:99px;transition:width .35s ease;}
+  .progress-label{font-size:13px;color:var(--muted);white-space:nowrap;}
+
+  .screen{display:none;}
+  .screen.active{display:block;}
+
+  .card{background:var(--white);border-radius:20px;padding:28px;box-shadow:0 8px 32px rgba(123,47,247,.08);}
+  .card h2{margin:0 0 12px;font-size:22px;}
+  .card p{color:var(--muted);line-height:1.55;font-size:15px;margin:0 0 14px;}
+  .card ul{color:var(--muted);line-height:1.65;font-size:15px;padding-left:20px;margin:0 0 20px;}
+  .card ul li{margin-bottom:6px;}
+
+  .start-icon{width:56px;height:56px;border-radius:16px;background:var(--purple-soft);display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:18px;}
+
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    background:var(--purple);color:#fff;border:none;padding:14px 28px;border-radius:12px;
+    font-size:15px;font-weight:600;cursor:pointer;transition:background .15s, transform .1s;
+    font-family:inherit;
+  }
+  .btn:hover{background:var(--purple-dark);}
+  .btn:active{transform:scale(.98);}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+
+  .btn.accent{
+    background:linear-gradient(135deg,#F59E0B,#D97706);
+    color:#fff;
+    border:none;
+    box-shadow:0 4px 14px rgba(217,119,6,.35);
+  }
+  .btn.accent:hover{background:linear-gradient(135deg,#D97706,#B45309);}
+
+  .task-head{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+  .tag{display:inline-block;font-size:12px;font-weight:600;padding:5px 11px;border-radius:99px;background:var(--purple-soft);color:var(--purple-dark);}
+  .tag.role{background:#FFF1E6;color:#B45309;}
+  .tag.level{background:#E0E7FF;color:#3730A3;}
+
+  .context-note{
+    background:#FFFBEB;border:1px solid #FCD34D;border-radius:10px;
+    padding:10px 14px;font-size:13px;line-height:1.5;color:#78350F;margin-bottom:14px;
+  }
+  .context-note::before{
+    content:"📎 Из переписки видно: ";font-weight:700;
+  }
+
+  .task-instruction{
+    font-size:14px;color:var(--muted);line-height:1.55;
+    margin:0 0 8px;padding:12px 16px;background:#FBF7FF;border-radius:10px;
+    border:1px solid var(--purple-line);
+  }
+  .task-instruction strong{color:var(--purple-dark);}
+
+  .task-note{
+    font-size:12.5px;color:var(--muted);line-height:1.5;margin:0 0 18px;
+    padding:0 4px;font-style:italic;
+  }
+
+  .chat{display:flex;flex-direction:column;gap:14px;margin-bottom:18px;}
+
+  .chat-row{display:flex;align-items:flex-start;gap:10px;}
+  .chat-row.user{justify-content:flex-start;}
+  .chat-row.operator{justify-content:flex-end;}
+
+  .chat-avatar{
+    width:40px;height:40px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:20px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.06);
+  }
+  .chat-avatar.passenger{background:#FFE4E6;}
+  .chat-avatar.driver{background:#DBEAFE;}
+  .chat-avatar.operator{background:var(--purple-soft);}
+
+  .chat-bubble{
+    max-width:75%;border-radius:16px;padding:12px 16px;
+    font-size:15px;line-height:1.55;position:relative;
+  }
+  .chat-bubble.user{background:#F3F4F6;color:#1F2937;border-top-left-radius:4px;}
+  .chat-bubble.operator{background:var(--purple-soft);color:#2A1A4A;border-top-right-radius:4px;}
+
+  .chat-name{
+    font-size:11px;font-weight:700;text-transform:uppercase;
+    letter-spacing:.6px;margin-bottom:4px;display:block;
+  }
+  .chat-bubble.user .chat-name{color:#6B7280;}
+  .chat-bubble.operator .chat-name{color:var(--purple);}
+
+  .chat-text{white-space:pre-line;}
+
+  textarea.empathy-input{
+    display:block;width:100%;min-height:110px;
+    border:none;border-bottom:1.5px dashed #F59E0B;
+    background:#FEF3C7;border-radius:8px;
+    padding:10px 12px;font-size:15px;font-family:inherit;
+    line-height:1.5;color:#78350F;margin:8px 0 0;
+    resize:vertical;
+    transition:border-color .15s, box-shadow .15s, background .15s;
+  }
+  textarea.empathy-input::placeholder{color:#B45309;opacity:.7;font-style:italic;}
+  textarea.empathy-input:focus{
+    outline:none;border-bottom-color:var(--purple);
+    background:#FBF7FF;box-shadow:0 0 0 4px rgba(123,47,247,.12);
+  }
+  textarea.empathy-input:disabled{
+    background:#F6F6F8;color:#4B5563;border-bottom-color:#D1D5DB;
+  }
+
+  .kb-link{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:13px;color:var(--purple-dark);text-decoration:none;
+    padding:6px 10px;border-radius:8px;background:var(--purple-soft);
+    border:1px solid var(--purple-line);margin-bottom:14px;
+    transition:background .15s;
+  }
+  .kb-link:hover{background:#E9DDFF;}
+
+  .hint{margin:16px 0 4px;font-size:14px;color:var(--muted);}
+  .hint summary{cursor:pointer;color:var(--purple);font-weight:600;padding:6px 0;user-select:none;}
+  .hint summary:hover{color:var(--purple-dark);}
+  .hint p{margin:6px 0 0;line-height:1.55;background:#FBF7FF;padding:12px 14px;border-radius:10px;border:1px solid var(--purple-line);white-space:pre-line;}
+
+  .actions{margin-top:20px;display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;}
+
+  .feedback{display:none;margin-top:24px;}
+  .feedback.visible{display:block;animation:fadeIn .3s ease;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+
+  .verdict{border-radius:14px;padding:16px 18px;margin-bottom:14px;border:1.5px solid;}
+  .verdict-title{font-weight:700;font-size:16px;line-height:1.4;}
+  .verdict-green{background:var(--green-bg);border-color:var(--green-border);}
+  .verdict-green .verdict-title{color:var(--green-text);}
+  .verdict-red{background:var(--red-bg);border-color:var(--red-border);}
+  .verdict-red .verdict-title{color:var(--red-text);}
+
+  .feedback-block{background:#FBFBFF;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:12px;}
+  .feedback-block h4{margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);}
+  .feedback-block p{margin:0;font-size:14px;line-height:1.6;color:#374151;}
+  .feedback-block ul{margin:0;padding-left:18px;}
+  .feedback-block li{font-size:14px;line-height:1.55;margin-bottom:6px;color:#374151;}
+  .feedback-block li:last-child{margin-bottom:0;}
+  .feedback-block-example{border-color:var(--purple-line);background:var(--purple-soft);}
+  .feedback-block-example h4{color:var(--purple-dark);}
+  .feedback-block-example .ex{font-size:14px;line-height:1.6;color:#2A1A4A;margin:0;white-space:pre-line;}
+
+  .feedback-block-tov{
+    border-color:var(--orange-border);
+    background:var(--orange-bg);
+  }
+  .feedback-block-tov h4{color:var(--orange-text);}
+  .feedback-block-tov ul li{color:#78350F;}
+
+  .feedback-block-explain{
+    border-color:var(--purple-line);
+    background:#F5F0FF;
+  }
+  .feedback-block-explain h4{color:var(--purple-dark);}
+  .feedback-block-explain p{color:#2A1A4A;}
+
+  .result-hero{text-align:center;padding:20px 10px 8px;}
+  .result-emoji{
+    font-size:88px;line-height:1;margin-bottom:14px;display:inline-block;
+    filter:drop-shadow(0 6px 14px rgba(123,47,247,.18));
+    animation:pop .4s ease;
+  }
+  @keyframes pop{
+    0%{transform:scale(.6);opacity:0;}
+    70%{transform:scale(1.08);}
+    100%{transform:scale(1);opacity:1;}
+  }
+  .result-wish{
+    font-size:17px;line-height:1.55;color:var(--text);
+    max-width:520px;margin:0 auto 10px;font-weight:500;
+  }
+  .result-sub{
+    font-size:14px;color:var(--muted);line-height:1.5;
+    max-width:520px;margin:0 auto;
+  }
+  .result-actions{
+    margin-top:26px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap;
+  }
+
+  @media (max-width:520px){
+    .app{padding:18px 14px 40px;}
+    .card{padding:20px;}
+    .app-header h1{font-size:21px;}
+    .result-emoji{font-size:68px;}
+    .result-wish{font-size:16px;}
+    .result-actions{flex-direction:column;}
+    .result-actions .btn{width:100%;}
+    .chat-bubble{max-width:82%;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="app-header">
+    <h1>Тренажёр эмпатии</h1>
+    <p>Поддержка WB Taxi · проверка ОКК</p>
+    <div class="progress-wrap">
+      <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+      <span class="progress-label" id="progressLabel">Подготовка</span>
+    </div>
+  </header>
+
+  <!-- ============ START ============ -->
+  <main class="screen active" id="screenStart">
+    <div class="card">
+      <div class="start-icon">💬</div>
+      <h2>Напиши фразу эмпатии</h2>
+      <p>В этом тренажёре ты формулируешь <strong>только фразу эмпатии</strong> (или извинение, если оно уместно). Приветствие и решение ситуации писать не нужно.</p>
+      <ul>
+        <li>Тебя ждут 5 кейсов из реальной поддержки WB Taxi.</li>
+        <li>В каждом кейсе — переписка пользователя и оператора.</li>
+        <li>Твоя задача — корректно и уместно применить эмпатию: написать присоединение, благодарность или извинение.</li>
+        <li>Тренажёр проверит ответ по чек-листу ОКК: эмпатия, стоп-фразы, извинения, завершение диалога.</li>
+        <li>Замечания по орфографии показываются отдельно и не влияют на оценку.</li>
+      </ul>
+      <p style="font-size:14px;">
+        <strong>Извиняемся, когда:</strong> наша ошибка, технический сбой, задержка ответа, неточность в предыдущем ответе.<br>
+        <strong>Не извиняемся за:</strong> правила компании, действия самого пользователя, корректное решение.<br>
+        <strong>Стоп-фразы ОКК:</strong> «Мы не можем», «Это не в нашей компетенции», «Ожидайте» (без пояснения), «Срок ответа нерегламентирован», «Обратитесь позднее», грубые формулировки.
+      </p>
+      <a class="kb-link" href="https://callcenter.wildberries.ru/KNOWLEDGE_BASE/PATH/base/ID/2529" target="_blank" rel="noopener">
+        📖 Открыть конструктор эмпатии
+      </a>
+      <button class="btn" id="startBtn">Начать тренажёр →</button>
+    </div>
+  </main>
+
+  <!-- ============ TASK ============ -->
+  <main class="screen" id="screenTask">
+    <div class="card">
+      <div class="task-head">
+        <span class="tag" id="caseCategory">—</span>
+        <span class="tag role" id="caseRole">—</span>
+        <span class="tag level" id="caseLevel">—</span>
+      </div>
+
+      <p class="task-instruction">
+        Напиши <strong>только фразу эмпатии</strong> — корректно и уместно. Приветствие и решение ситуации писать не нужно. Если по ситуации уместно извинение — добавь его.
+      </p>
+      <p class="task-note">
+        Обрати внимание: автопроверка может не абсолютно точно понимать твои формулировки. Если оценка покажется несправедливой — свериться можно с примером хорошего ответа в разборе.
+      </p>
+
+      <div class="context-note" id="caseContext" style="display:none;"></div>
+
+      <div class="chat" id="caseChat"></div>
+
+      <a class="kb-link" href="https://callcenter.wildberries.ru/KNOWLEDGE_BASE/PATH/base/ID/2529" target="_blank" rel="noopener">
+        📖 Открыть конструктор эмпатии
+      </a>
+
+      <details class="hint">
+        <summary>💡 Напоминание: чек-лист ОКК по эмпатии</summary>
+        <p id="caseHint"></p>
+      </details>
+
+      <div class="actions">
+        <button class="btn" id="checkBtn">Проверить</button>
+      </div>
+
+      <div class="feedback" id="feedback"></div>
+    </div>
+  </main>
+
+  <!-- ============ RESULT ============ -->
+  <main class="screen" id="screenResult">
+    <div class="card">
+      <div class="result-hero">
+        <div class="result-emoji" id="resultEmoji">🏆</div>
+        <p class="result-wish" id="resultWish">—</p>
+        <p class="result-sub" id="resultSub"></p>
+      </div>
+      <div class="result-actions" id="resultActions">
+        <button class="btn accent" id="errorsBtn">Пройти кейсы, где были ошибки</button>
+        <button class="btn" id="restartBtn">Пройти все кейсы заново</button>
+      </div>
+    </div>
+  </main>
+
+</div>
+
+<script>
+/* ============================================================
+   ЧЕК-ЛИСТ ОКК
+   ============================================================ */
+const OKK_STOP = [
+  {
+    re: /нужно\s+было\s+быть\s+внимательн|нужно\s+было\s+проверять|надо\s+было\s+провер|вы\s+должны\s+были|вам\s+нужно\s+было|сами\s+виноват|это\s+ваша\s+вина/i,
+    label: "Грубые формулировки",
+    feedback: "Формулировки вроде «Нужно было быть внимательнее», «Надо было проверять» обвиняют пользователя. Это недопустимо по чек-листу ОКК."
+  },
+  {
+    re: /мы\s+не\s+можем|это\s+не\s+в\s+нашей\s+компетенц|не\s+в\s+нашей\s+компетенц|это\s+не\s+к\s+нам/i,
+    label: "«Мы не можем», «Это не в нашей компетенции»",
+    feedback: "Такие фразы звучат как отказ от помощи. Лучше объяснить, что можно сделать, даже если решение ограничено."
+  },
+  {
+    re: /(?:^|[^а-яё])ожидайте(?:[^а-яё]|$)|срок\s+ответа\s+не\s+регламент|срок\s+ответа\s+нерегламент|обратитесь\s+позднее|обращайтесь\s+позже/i,
+    label: "«Ожидайте», «Срок ответа нерегламентирован», «Обратитесь позднее»",
+    feedback: "«Ожидайте» без пояснения, чего именно ждать, и «Обратитесь позднее» — недопустимые стоп-фразы по чек-листу ОКК."
+  },
+  {
+    re: /не\s*переживай|не\s*волнуй|успокой|не\s*расстраивай|не\s*беспокой/i,
+    label: "«Не переживайте», «Успокойтесь»",
+    feedback: "Не говори пользователю, что ему чувствовать. Лучше назвать конкретную ситуацию."
+  }
+];
+
+const CLOSING_PHRASES = /спасибо\s+за\s+обращение|благодарю\s+за\s+обращение|всего\s+доброго|до\s+свидания|хорошего\s+дня/i;
+
+const RE = {
+  apology: /извини|прости|прошу\s+прощения|приношу\s+извинения/i,
+  empathy: /понимаю|жаль|сочувствую|представляю|досадно|разделяю|давайте|помо[гж]|подскаж|я\s+здесь|разбер[её]мся|готов[аы]?\s+помочь|спасибо|благодарю/i,
+  question: /\?/
+};
+
+const HINT_TEXT =
+`Извиняемся, когда: наша ошибка, технический сбой, задержка ответа, неточность в предыдущем ответе.
+
+Не извиняемся за: правила компании, действия самого пользователя, корректное решение.
+
+Стоп-фразы ОКК, которые нельзя использовать:
+• «Нужно было быть внимательнее», «Нужно проверять точку подачи» — грубые формулировки.
+• «Мы не можем», «Это не в нашей компетенции» — отказ от помощи.
+• «Ожидайте» без пояснения, чего именно ждать.
+• «Срок ответа нерегламентирован».
+• «Обратитесь позднее».
+
+Не завершай диалог раньше пользователя: не прощайся и не благодари за обращение, если диалог ещё не закончен.`;
+
+/* ============================================================
+   ЯНДЕКС.СПЕЛЛЕР
+   ============================================================ */
+async function checkSpellingYandex(text){
+  if(!text || text.trim().length === 0) return [];
+
+  const url = "https://speller.yandex.net/services/spellservice.json/checkText"
+    + "?text=" + encodeURIComponent(text)
+    + "&lang=ru&options=518";
+
+  try {
+    const response = await fetch(url);
+    if(!response.ok) throw new Error("Спеллер недоступен");
+    const data = await response.json();
+
+    return data.map(err => {
+      const suggestions = (err.s && err.s.length > 0)
+        ? err.s.slice(0, 3).join(", ")
+        : "варианты не найдены";
+      return {
+        word: err.word,
+        label: `«${err.word}» — возможно, опечатка. Варианты: ${suggestions}`
+      };
+    });
+  } catch (e) {
+    console.warn("Яндекс.Спеллер недоступен:", e.message);
+    return [];
+  }
+}
+
+/* ============================================================
+   КЕЙСЫ
+   ============================================================ */
+const cases = [
+
+  {
+    category: "Связь с пассажиром",
+    role: "Водитель",
+    roleLabel: "Водитель",
+    avatar: "driver",
+    avatarIcon: "🚗",
+    level: "Простой",
+    needsApology: false,
+    empathyType: "joining",
+    empathyExplanation: "Водитель уже подъехал и ждёт пассажира, который не берёт трубку. Это не ошибка компании и не технический сбой — извиняться не за что. Но водитель в стрессе: он теряет время, не может начать следующий заказ и не понимает, что делать. Задача оператора — показать, что мы понимаем эту трудность («Понимаю, что ситуация неприятная»), и дать понятный следующий шаг. Эмпатия здесь — это присоединение к ожиданию и готовность помочь разобраться.",
+    context: "",
+    userMessage: "Здравствуйте. Подъехал к точке подачи, а пассажир не берёт трубку и не выходит. Уже 10 минут жду. Что делать?",
+    hint: HINT_TEXT,
+    goodExample:
+`Понимаю, что ситуация неприятная — вы уже подъехали и ждёте, а пассажир не отвечает.
+
+Попробуйте, пожалуйста, ещё раз позвонить и написать пассажиру в чат. Если он не ответит в течение нескольких минут, вы можете отменить заказ без потери рейтинга — это будет отмена по вине пассажира.`
+  },
+
+  {
+    category: "Привязка карты",
+    role: "Пассажир",
+    roleLabel: "Пассажир",
+    avatar: "passenger",
+    avatarIcon: "👩",
+    level: "Простой",
+    needsApology: true,
+    empathyType: "apology",
+    apologyReason: "приложение выдаёт ошибку при привязке карты — это технический сбой на нашей стороне.",
+    context: "",
+    userMessage: "Пытаюсь привязать карту в приложении, а оно выдаёт ошибку. Уже несколько раз пробовала — ничего не получается.",
+    hint: HINT_TEXT,
+    goodExample:
+`Извините, что приложение выдаёт ошибку при привязке карты — это технический сбой на нашей стороне.
+
+Понимаю, что вы уже пробовали несколько раз. Попробуйте, пожалуйста, закрыть и заново открыть приложение и привязать карту ещё раз. Если ошибка повторится, напишите нам — проверим, в чём причина.`
+  },
+
+  {
+    category: "Забытая вещь",
+    role: "Пассажир",
+    roleLabel: "Пассажир",
+    avatar: "passenger",
+    avatarIcon: "👩",
+    level: "Сложный",
+    needsApology: false,
+    empathyType: "joining",
+    noApologyReason: "компания не виновата в том, что пассажир забыл вещь в машине — это не ошибка сервиса и не задержка на нашей стороне.",
+    context: "",
+    userMessage: "Здравствуйте! Я оставил в машине сумку с документами. Очень переживаю, там паспорт и рабочие бумаги. Пожалуйста, помогите!",
+    hint: HINT_TEXT,
+    goodExample:
+`Понимаю, как это тревожно — в сумке документы, и вы переживаете.
+
+Чтобы мы могли помочь с поиском, уточните, пожалуйста, дату поездки и адрес подачи автомобиля. После этого мы свяжемся с водителем и проверим информацию.`
+  },
+
+  {
+    category: "Жалоба на водителя",
+    role: "Пассажир",
+    roleLabel: "Пассажир",
+    avatar: "passenger",
+    avatarIcon: "👩",
+    level: "Сложный",
+    needsApology: false,
+    empathyType: "joining",
+    noApologyReason: "компания не виновата в том, что водитель, по мнению пассажира, был недостаточно вежлив. Это не технический сбой и не ошибка сервиса, поэтому извинение здесь неуместно — важно присоединиться и разобраться.",
+    context: "в системе видно, что поездка завершена корректно, но пассажир считает, что водитель был невежлив.",
+    userMessage: "Водитель всю дорогу молчал, не помог с чемоданом и был очень неприветлив. Неприятно, что за такие деньги такое отношение!",
+    hint: HINT_TEXT,
+    goodExample:
+`Понимаю, что поездка оставила неприятное впечатление — когда водитель не помогает и ведёт себя холодно, это действительно расстраивает.
+
+Спасибо, что рассказали об этом. Сейчас проверю информацию по вашей поездке и передам её в отдел качества, чтобы разобраться в ситуации.`
+  },
+
+  {
+    category: "Задержка ответа водителю",
+    role: "Водитель",
+    roleLabel: "Водитель",
+    avatar: "driver",
+    avatarIcon: "🚗",
+    level: "Сложный",
+    needsApology: true,
+    empathyType: "apology",
+    apologyReason: "водитель ждёт ответа по компенсации больше суток — это задержка ответа на нашей стороне.",
+    context: "водитель ждёт ответа по компенсации за отменённый заказ больше суток; проверка ещё идёт, задержка ответа на нашей стороне.",
+    userMessage: "Я уже сутки жду ответа по компенсации за отменённый заказ! Пассажир отменил, когда я уже подъехал. Почему так долго?",
+    hint: HINT_TEXT,
+    goodExample:
+`Извините за долгое ожидание — ответ по вашему обращению действительно задерживается.
+
+Понимаю, что ситуация неприятная: вы уже подъехали, потратили время и топливо, а заказ отменили. Сейчас проверю статус по вашему обращению и вернусь с результатом в этом чате.`
+  }
+];
+
+/* ============================================================
+   СОСТОЯНИЕ
+   ============================================================ */
+const state = {
+  queue: [],
+  pos: 0,
+  answers: {},
+  answered: false
+};
+
+/* ============================================================
+   ЭЛЕМЕНТЫ
+   ============================================================ */
+const el = {
+  screenStart: document.getElementById('screenStart'),
+  screenTask: document.getElementById('screenTask'),
+  screenResult: document.getElementById('screenResult'),
+  startBtn: document.getElementById('startBtn'),
+  checkBtn: document.getElementById('checkBtn'),
+  restartBtn: document.getElementById('restartBtn'),
+  errorsBtn: document.getElementById('errorsBtn'),
+  progressBar: document.getElementById('progressBar'),
+  progressLabel: document.getElementById('progressLabel'),
+  caseCategory: document.getElementById('caseCategory'),
+  caseRole: document.getElementById('caseRole'),
+  caseLevel: document.getElementById('caseLevel'),
+  caseContext: document.getElementById('caseContext'),
+  caseChat: document.getElementById('caseChat'),
+  caseHint: document.getElementById('caseHint'),
+  feedback: document.getElementById('feedback'),
+  resultEmoji: document.getElementById('resultEmoji'),
+  resultWish: document.getElementById('resultWish'),
+  resultSub: document.getElementById('resultSub')
+};
+
+/* ============================================================
+   НАВИГАЦИЯ
+   ============================================================ */
+function showScreen(name){
+  [el.screenStart, el.screenTask, el.screenResult].forEach(s => s.classList.remove('active'));
+  if(name === 'start')  el.screenStart.classList.add('active');
+  if(name === 'task')   el.screenTask.classList.add('active');
+  if(name === 'result') el.screenResult.classList.add('active');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+/* ============================================================
+   ЗАПУСК
+   ============================================================ */
+function startAllRun(){
+  state.queue = cases.map((_, i) => i);
+  state.pos = 0;
+  state.answers = {};
+  state.answered = false;
+  renderTask();
+  showScreen('task');
+}
+
+function startErrorsRun(){
+  const wrong = getWrongIndices();
+  if(wrong.length === 0) return;
+  state.queue = wrong;
+  state.pos = 0;
+  state.answered = false;
+  renderTask();
+  showScreen('task');
+}
+
+function getWrongIndices(){
+  return cases.map((_, i) => i)
+              .filter(i => state.answers[i] && !state.answers[i].correct);
+}
+
+/* ============================================================
+   ОТРИСОВКА ЗАДАНИЯ
+   ============================================================ */
+function renderTask(){
+  const caseIndex = state.queue[state.pos];
+  const c = cases[caseIndex];
+  state.answered = false;
+
+  el.caseCategory.textContent = c.category;
+  el.caseRole.textContent = c.role;
+  el.caseLevel.textContent = c.level;
+
+  if(c.context){
+    el.caseContext.textContent = c.context;
+    el.caseContext.style.display = 'block';
+  } else {
+    el.caseContext.style.display = 'none';
+    el.caseContext.textContent = '';
+  }
+
+  const avatarRole = c.avatar;
+  const avatarIcon = c.avatarIcon;
+
+  let chatHtml = '';
+
+  chatHtml += `
+    <div class="chat-row user">
+      <div class="chat-avatar ${avatarRole}">${avatarIcon}</div>
+      <div class="chat-bubble user">
+        <span class="chat-name">${c.roleLabel}</span>
+        <div class="chat-text">${c.userMessage}</div>
+      </div>
+    </div>
+  `;
+
+  chatHtml += `
+    <div class="chat-row operator">
+      <div class="chat-bubble operator">
+        <span class="chat-name">Оператор</span>
+        <div class="chat-text">
+          <textarea class="empathy-input" id="empathyInput" placeholder="Напиши только фразу эмпатии (или извинение, если уместно)"></textarea>
+        </div>
+      </div>
+      <div class="chat-avatar operator">🎧</div>
+    </div>
+  `;
+
+  el.caseChat.innerHTML = chatHtml;
+
+  const input = document.getElementById('empathyInput');
+  input.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !state.answered){
+      checkAnswer();
+    }
+  });
+
+  el.caseHint.textContent = c.hint;
+
+  el.feedback.innerHTML = '';
+  el.feedback.classList.remove('visible');
+
+  el.checkBtn.textContent = 'Проверить';
+  el.checkBtn.disabled = false;
+
+  const pct = (state.pos / state.queue.length) * 100;
+  el.progressBar.style.width = pct + '%';
+  el.progressLabel.textContent = `Задание ${state.pos + 1} из ${state.queue.length}`;
+}
+
+/* ============================================================
+   ПРОВЕРКА
+   ============================================================ */
+async function checkAnswer(){
+  const input = document.getElementById('empathyInput');
+  const raw = input.value.trim();
+  const caseIndex = state.queue[state.pos];
+  const c = cases[caseIndex];
+
+  if(raw.length === 0){
+    el.feedback.innerHTML = `<div class="verdict verdict-red">
+      <div class="verdict-title">Пустой ответ</div>
+    </div>`;
+    el.feedback.classList.add('visible');
+    el.feedback.scrollIntoView({behavior:'smooth', block:'nearest'});
+    return;
+  }
+
+  input.disabled = true;
+  el.checkBtn.disabled = true;
+  el.checkBtn.textContent = 'Проверяем…';
+
+  const stopFound = OKK_STOP.filter(s => s.re.test(raw));
+  const closingTooEarly = CLOSING_PHRASES.test(raw) && !RE.question.test(raw);
+  const hasApology = RE.apology.test(raw);
+  const hasEmpathy = RE.empathy.test(raw);
+
+  const okkIssues = [];
+
+  stopFound.forEach(s => {
+    okkIssues.push({ label: s.label, feedback: s.feedback });
+  });
+
+  if(closingTooEarly){
+    okkIssues.push({
+      label: "Диалог завершён раньше времени",
+      feedback: "Не прощайся и не благодари за обращение, пока пользователь не завершил диалог. По чек-листу ОКК это некорректное завершение."
+    });
+  }
+
+  if(c.needsApology && !hasApology){
+    okkIssues.push({
+      label: "Отсутствует извинение",
+      feedback: "В этой ситуации произошла задержка на нашей стороне или ошибка — нужно извиниться. По чек-листу ОКК это отсутствие извинений при сбое или долгом ожидании."
+    });
+  }
+
+  if(!c.needsApology && hasApology){
+    okkIssues.push({
+      label: "Извинение без основания",
+      feedback: "Здесь нет вины компании: " + c.noApologyReason + " Извинение неуместно — лучше использовать «Присоединение» или «Готовность помочь»."
+    });
+  }
+
+  if(!hasEmpathy){
+    okkIssues.push({
+      label: "Отсутствует эмпатия",
+      feedback: "В ответе нет ни присоединения, ни готовности помочь, ни благодарности. По чек-листу ОКК это отсутствие эмпатии."
+    });
+  }
+
+  let spellingIssues = [];
+  try {
+    spellingIssues = await checkSpellingYandex(raw);
+  } catch (e) {
+    console.warn("Проверка орфографии не удалась");
+  }
+
+  const isCorrect = okkIssues.length === 0;
+  const verdictClass = isCorrect ? 'verdict-green' : 'verdict-red';
+  const verdictText = isCorrect
+    ? "✅ Ответ прошёл проверку ОКК"
+    : "❌ Ответ не прошёл проверку ОКК";
+
+  let html = `<div class="verdict ${verdictClass}">
+    <div class="verdict-title">${verdictText}</div>
+  </div>`;
+
+  if(c.empathyExplanation){
+    html += `<div class="feedback-block feedback-block-explain">
+      <h4>Почему здесь нужна эмпатия</h4>
+      <p>${c.empathyExplanation}</p>
+    </div>`;
+  }
+
+  if(c.needsApology && c.apologyReason){
+    html += `<div class="feedback-block feedback-block-explain">
+      <h4>Почему здесь важно извиниться</h4>
+      <p>Основание для извинения есть: ${c.apologyReason} Извинение показывает пользователю, что мы признаём задержку и не оставляем её без внимания. При этом важно не просто извиниться, а добавить присоединение — показать, что мы понимаем ситуацию пользователя.</p>
+    </div>`;
+  }
+
+  if(!c.needsApology && c.noApologyReason){
+    html += `<div class="feedback-block feedback-block-explain">
+      <h4>Почему здесь извиняться не нужно</h4>
+      <p>${c.noApologyReason} Важно не извиняться за то, в чём нет вины компании, а проявить эмпатию через «Присоединение» или «Готовность помочь» — показать, что ты слышишь пользователя и готов разобраться.</p>
+    </div>`;
+  }
+
+  if(okkIssues.length > 0){
+    html += `<div class="feedback-block feedback-block-tov">
+      <h4>Замечания по чек-листу ОКК</h4>
+      <ul>`;
+    okkIssues.forEach(issue => {
+      html += `<li><strong>${issue.label}.</strong> ${issue.feedback}</li>`;
+    });
+    html += `</ul></div>`;
+  }
+
+  if(spellingIssues.length > 0){
+    html += `<div class="feedback-block feedback-block-tov">
+      <h4>Орфография и опечатки (на оценку не влияют)</h4>
+      <ul>`;
+    spellingIssues.forEach(issue => {
+      html += `<li>${issue.label}</li>`;
+    });
+    html += `</ul></div>`;
+  }
+
+  html += `<div class="feedback-block feedback-block-example">
+    <h4>Пример хорошего ответа</h4>
+    <p class="ex">${c.goodExample}</p>
+  </div>`;
+
+  el.feedback.innerHTML = html;
+  el.feedback.classList.add('visible');
+
+  state.answers[caseIndex] = { correct: isCorrect };
+  state.answered = true;
+
+  el.checkBtn.textContent = (state.pos === state.queue.length - 1) ? 'Завершить' : 'Далее →';
+  el.checkBtn.disabled = false;
+
+  el.feedback.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function nextTask(){
+  if(state.pos < state.queue.length - 1){
+    state.pos++;
+    renderTask();
+    window.scrollTo({top:0, behavior:'smooth'});
+  } else {
+    showResults();
+  }
+}
+
+function showResults(){
+  const total = state.queue.length;
+  const correct = state.queue.filter(i => state.answers[i] && state.answers[i].correct).length;
+  const ratio = total > 0 ? correct / total : 0;
+
+  let emoji, wish, sub;
+
+  if(ratio === 1){
+    emoji = "🏆";
+    wish = "Идеально! Все ответы прошли проверку ОКК — эмпатия и формулировки в порядке.";
+    sub  = "Так держать! Именно такие ответы снижают напряжение и сохраняют лояльность.";
+  } else if(ratio >= 0.6){
+    emoji = "🌟";
+    wish = "Хороший результат! Большинство ответов прошли проверку ОКК.";
+    sub  = "Разбери кейсы с замечаниями и попробуй пройти тренажёр ещё раз.";
+  } else {
+    emoji = "🌱";
+    wish = "Начало положено! Разбери замечания ОКК и попробуй снова.";
+    sub  = "С каждым разом будет получаться лучше — главное, тренироваться.";
+  }
+
+  el.resultEmoji.textContent = emoji;
+  el.resultWish.textContent = wish;
+  el.resultSub.textContent = sub;
+
+  const wrong = getWrongIndices();
+  el.errorsBtn.style.display = (wrong.length > 0) ? 'inline-flex' : 'none';
+
+  el.progressBar.style.width = '100%';
+  el.progressLabel.textContent = 'Готово';
+  showScreen('result');
+}
+
+el.startBtn.addEventListener('click', startAllRun);
+
+el.checkBtn.addEventListener('click', () => {
+  if(state.answered){
+    nextTask();
+  } else {
+    checkAnswer();
+  }
+});
+
+el.restartBtn.addEventListener('click', startAllRun);
+el.errorsBtn.addEventListener('click', startErrorsRun);
+</script>
+</body>
+</html>
