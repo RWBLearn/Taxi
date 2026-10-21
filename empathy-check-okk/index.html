@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Тренажёр эмпатии · Контроль качества</title>
+<style>
+  :root{
+    --purple:#7B2FF7;
+    --purple-dark:#5A1FBF;
+    --purple-soft:#F3EBFF;
+    --purple-line:#E3D2FF;
+    --text:#1F2937;
+    --muted:#6B7280;
+    --white:#FFFFFF;
+    --green:#15803D;
+    --green-bg:#DCFCE7;
+    --green-border:#86EFAC;
+    --green-text:#14532D;
+    --red:#B91C1C;
+    --red-bg:#FEE2E2;
+    --red-border:#FCA5A5;
+    --red-text:#7F1D1D;
+    --orange:#B45309;
+    --orange-bg:#FEF3C7;
+    --orange-border:#FCD34D;
+    --orange-text:#78350F;
+    --border:#E5E7EB;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    background:linear-gradient(160deg,#F8F5FF 0%,#EFE6FF 100%);
+    color:var(--text);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{max-width:820px;margin:0 auto;padding:28px 20px 60px;}
+
+  .app-header{margin-bottom:22px;}
+  .app-header h1{font-size:25px;margin:0 0 4px;letter-spacing:-0.3px;}
+  .app-header p{margin:0 0 14px;color:var(--muted);font-size:14px;}
+  .progress-wrap{display:flex;align-items:center;gap:12px;}
+  .progress{flex:1;height:8px;background:#E9DDFF;border-radius:99px;overflow:hidden;}
+  .progress-bar{height:100%;width:0%;background:linear-gradient(90deg,#9B5DE5,#7B2FF7);border-radius:99px;transition:width .35s ease;}
+  .progress-label{font-size:13px;color:var(--muted);white-space:nowrap;}
+
+  .screen{display:none;}
+  .screen.active{display:block;}
+
+  .card{background:var(--white);border-radius:20px;padding:28px;box-shadow:0 8px 32px rgba(123,47,247,.08);}
+  .card h2{margin:0 0 12px;font-size:22px;}
+  .card p{color:var(--muted);line-height:1.55;font-size:15px;margin:0 0 14px;}
+  
+  .start-icon{width:56px;height:56px;border-radius:16px;background:var(--purple-soft);display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:18px;}
+
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    background:var(--purple);color:#fff;border:none;padding:14px 28px;border-radius:12px;
+    font-size:15px;font-weight:600;cursor:pointer;transition:background .15s, transform .1s;
+    font-family:inherit;
+  }
+  .btn:hover{background:var(--purple-dark);}
+  .btn:active{transform:scale(.98);}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+
+  .btn.accent{
+    background:linear-gradient(135deg,#F59E0B,#D97706);
+    color:#fff;
+    border:none;
+    box-shadow:0 4px 14px rgba(217,119,6,.35);
+  }
+  .btn.accent:hover{background:linear-gradient(135deg,#D97706,#B45309);}
+
+  .task-head{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+  .tag{display:inline-block;font-size:12px;font-weight:600;padding:5px 11px;border-radius:99px;background:var(--purple-soft);color:var(--purple-dark);}
+  .tag.role{background:#FFF1E6;color:#B45309;}
+  .tag.role-qc{background:#E0E7FF;color:#3730A3;}
+
+  .task-instruction{
+    font-size:14px;color:var(--muted);line-height:1.55;
+    margin:0 0 8px;padding:12px 16px;background:#FBF7FF;border-radius:10px;
+    border:1px solid var(--purple-line);
+  }
+  .task-instruction strong{color:var(--purple-dark);}
+
+  .chat{display:flex;flex-direction:column;gap:14px;margin-bottom:24px;}
+
+  .chat-row{display:flex;align-items:flex-start;gap:10px;}
+  .chat-row.user{justify-content:flex-start;}
+  .chat-row.operator{justify-content:flex-end;}
+
+  .chat-avatar{
+    width:40px;height:40px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:20px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.06);
+  }
+  .chat-avatar.passenger{background:#FFE4E6;}
+  .chat-avatar.driver{background:#DBEAFE;}
+  .chat-avatar.operator{background:var(--purple-soft);}
+
+  .chat-bubble{
+    max-width:75%;border-radius:16px;padding:12px 16px;
+    font-size:15px;line-height:1.55;position:relative;
+  }
+  .chat-bubble.user{background:#F3F4F6;color:#1F2937;border-top-left-radius:4px;}
+  .chat-bubble.operator{background:var(--purple-soft);color:#2A1A4A;border-top-right-radius:4px;}
+
+  .chat-name{
+    font-size:11px;font-weight:700;text-transform:uppercase;
+    letter-spacing:.6px;margin-bottom:4px;display:block;
+  }
+  .chat-bubble.user .chat-name{color:#6B7280;}
+  .chat-bubble.operator .chat-name{color:var(--purple);}
+
+  .chat-text{white-space:pre-line;}
+  
+  .chat-image{
+    width: 100%; 
+    max-width: 240px; 
+    border-radius: 8px; 
+    margin-top: 10px; 
+    box-shadow: 0 2px 8px rgba(0,0,0,.1);
+    display: block;
+  }
+
+  /* Чек-лист */
+  .checklist{display:flex;flex-direction:column;gap:10px;margin-bottom:24px;}
+  
+  .checklist-item{
+    display:flex;flex-direction:column;gap:8px;
+    padding:14px 16px;
+    background:#FBFBFF;
+    border:1.5px solid var(--border);
+    border-radius:12px;
+    transition:all .2s;
+  }
+  .checklist-top{
+    display:flex;align-items:flex-start;gap:12px;
+  }
+  .checklist-item input[type="checkbox"]{
+    margin-top:3px;width:18px;height:18px;
+    accent-color:var(--purple);
+    cursor:pointer;flex-shrink:0;
+  }
+  .checklist-text{
+    font-size:14px;line-height:1.5;color:#374151;
+  }
+
+  /* Стили для результатов */
+  .checklist-item.state-correct{
+    border-color:var(--green-border);
+    background:var(--green-bg);
+  }
+  .checklist-item.state-correct .checklist-text{
+    color:var(--green-text);
+  }
+  .checklist-item.state-correct .checklist-text::before{
+    content:"✅ "; font-weight:bold;
+  }
+
+  .checklist-item.state-error{
+    border-color:var(--red-border);
+    background:var(--red-bg);
+  }
+  .checklist-item.state-error .checklist-text{
+    color:var(--red-text);
+  }
+  .checklist-item.state-error .checklist-text::before{
+    content:"❌ "; font-weight:bold;
+  }
+
+  .checklist-comment{
+    font-size:13px;
+    line-height:1.4;
+    padding-left:30px;
+    color:var(--red-text);
+    font-weight:500;
+  }
+
+  .actions{margin-top:20px;display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;}
+
+  .feedback{display:none;margin-top:24px;}
+  .feedback.visible{display:block;animation:fadeIn .3s ease;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+
+  .verdict{border-radius:14px;padding:16px 18px;margin-bottom:14px;border:1.5px solid;}
+  .verdict-title{font-weight:700;font-size:16px;line-height:1.4;}
+  .verdict-green{background:var(--green-bg);border-color:var(--green-border);}
+  .verdict-green .verdict-title{color:var(--green-text);}
+  .verdict-red{background:var(--red-bg);border-color:var(--red-border);}
+  .verdict-red .verdict-title{color:var(--red-text);}
+
+  .feedback-block{background:#FBFBFF;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:12px;}
+  .feedback-block h4{margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);}
+  .feedback-block p{margin:0;font-size:14px;line-height:1.6;color:#374151;}
+
+  .result-hero{text-align:center;padding:20px 10px 8px;}
+  .result-emoji{
+    font-size:88px;line-height:1;margin-bottom:14px;display:inline-block;
+    filter:drop-shadow(0 6px 14px rgba(123,47,247,.18));
+    animation:pop .4s ease;
+  }
+  @keyframes pop{
+    0%{transform:scale(.6);opacity:0;}
+    70%{transform:scale(1.08);}
+    100%{transform:scale(1);opacity:1;}
+  }
+  .result-wish{
+    font-size:17px;line-height:1.55;color:var(--text);
+    max-width:520px;margin:0 auto 10px;font-weight:500;
+  }
+  .result-sub{
+    font-size:14px;color:var(--muted);line-height:1.5;
+    max-width:520px;margin:0 auto;
+  }
+  .result-actions{
+    margin-top:26px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap;
+  }
+
+  @media (max-width:520px){
+    .app{padding:18px 14px 40px;}
+    .card{padding:20px;}
+    .app-header h1{font-size:21px;}
+    .result-emoji{font-size:68px;}
+    .result-wish{font-size:16px;}
+    .result-actions{flex-direction:column;}
+    .result-actions .btn{width:100%;}
+    .chat-bubble{max-width:82%;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="app-header">
+    <h1>Тренажёр эмпатии</h1>
+    <p>Поддержка WB Taxi · контроль качества</p>
+    <div class="progress-wrap">
+      <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+      <span class="progress-label" id="progressLabel">Подготовка</span>
+    </div>
+  </header>
+
+  <!-- ============ START ============ -->
+  <main class="screen active" id="screenStart">
+    <div class="card">
+      <div class="start-icon">🕵️‍♂️</div>
+      <h2>Попробуй себя в роли ОКК</h2>
+      <p>Перед тобой ответы разных операторов на вопросы пользователей.</p>
+      <p>Твоя задача — <strong>отметить галочками пункты из чек-листа ОКК</strong>, которые нарушены в ответе оператора. Если нарушений нет — не отмечай ничего.</p>
+      
+      <div class="task-instruction" style="margin: 20px 0;">
+        <strong>Чек-лист ОКК по некорректному проявлению эмпатии:</strong><br><br>
+        1. Использовали грубые формулировки («Нужно было быть внимательнее», «Нужно проверять точку подачи»).<br>
+        2. Использовали фразы «Мы не можем», «Это не в нашей компетенции», «Ожидайте» (без пояснения), «Срок ответа нерегламентирован».<br>
+        3. Использовали фразы «Обратитесь позднее».<br>
+        4. Отсутствие извинений, если произошёл сбой или ошибка. Или пользователю пришлось долго ждать ответ.<br>
+        5. Отсутствие эмпатии.<br>
+        6. Сотрудник сразу прощается / благодарит за обращение, когда диалог ещё не закончен.<br>
+        7. Неуместные извинения (извинение без основания, когда вины компании нет).
+      </div>
+
+      <button class="btn" id="startBtn">Начать проверку →</button>
+    </div>
+  </main>
+
+  <!-- ============ TASK ============ -->
+  <main class="screen" id="screenTask">
+    <div class="card">
+      <div class="task-head">
+        <span class="tag" id="caseCategory">—</span>
+        <span class="tag role" id="caseRole">—</span>
+        <span class="tag role-qc">Контроль качества</span>
+      </div>
+
+      <div class="chat" id="caseChat"></div>
+
+      <p class="task-instruction">
+        <strong>Отметь пункты чек-листа</strong>, которые нарушены в ответе оператора:
+      </p>
+      
+      <div class="checklist" id="checklistContainer">
+        <!-- Чекбоксы будут вставлены через JS -->
+      </div>
+
+      <div class="actions">
+        <button class="btn" id="checkBtn">Проверить ответ</button>
+      </div>
+
+      <div class="feedback" id="feedback"></div>
+    </div>
+  </main>
+
+  <!-- ============ RESULT ============ -->
+  <main class="screen" id="screenResult">
+    <div class="card">
+      <div class="result-hero">
+        <div class="result-emoji" id="resultEmoji">🏆</div>
+        <p class="result-wish" id="resultWish">—</p>
+        <p class="result-sub" id="resultSub"></p>
+      </div>
+      <div class="result-actions" id="resultActions">
+        <button class="btn accent" id="errorsBtn">Пройти кейсы, где были ошибки</button>
+        <button class="btn" id="restartBtn">Пройти все кейсы заново</button>
+      </div>
+    </div>
+  </main>
+
+</div>
+
+<script>
+/* ============================================================
+   ЧЕК-ЛИСТ (СПИСОК ПУНКТОВ)
+   ============================================================ */
+const CHECKLIST_ITEMS = [
+  { id: "rude", text: "Использовали грубые формулировки («Нужно было быть внимательнее», «Нужно проверять точку подачи»)" },
+  { id: "refuse", text: "Использовали фразы «Мы не можем», «Это не в нашей компетенции», «Ожидайте» (без пояснения), «Срок ответа нерегламентирован»" },
+  { id: "later", text: "Использовали фразы «Обратитесь позднее»" },
+  { id: "no_apology", text: "Отсутствие извинений, если произошёл сбой или ошибка, или пользователю пришлось долго ждать" },
+  { id: "no_empathy", text: "Отсутствие эмпатии" },
+  { id: "early_close", text: "Сотрудник сразу прощается / благодарит за обращение, когда диалог ещё не закончен" },
+  { id: "unnecessary_apology", text: "Неуместные извинения (извинение без основания, когда вины компании нет)" }
+];
+
+/* ============================================================
+   СКРИНШОТ (SVG, закодированный для URL)
+   ============================================================ */
+const rawSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="400" viewBox="0 0 300 400"><rect width="300" height="400" fill="#f0f0f0"/><rect x="20" y="100" width="260" height="150" fill="white" rx="10" filter="drop-shadow(0px 4px 6px rgba(0,0,0,0.1))"/><text x="40" y="140" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333">Произошла ошибка</text><text x="40" y="170" font-family="Arial, sans-serif" font-size="14" fill="#666">Повторите попытку.</text><text x="40" y="220" font-family="Arial, sans-serif" font-size="14" fill="#7B2FF7">Отмена</text><text x="180" y="220" font-family="Arial, sans-serif" font-size="14" fill="#7B2FF7">Повторить</text><text x="180" y="240" font-family="Arial, sans-serif" font-size="14" fill="#7B2FF7">попытку</text></svg>`;
+const ERROR_SCREENSHOT = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(rawSvg);
+
+/* ============================================================
+   КЕЙСЫ
+   ============================================================ */
+const cases = [
+  /* КЕЙС 1. Привязка карты (Нарушение: нет извинения) */
+  {
+    category: "Технический сбой",
+    role: "Пассажир",
+    roleLabel: "Пассажир",
+    avatar: "passenger",
+    avatarIcon: "👩",
+    userMessage: "Не могу привязать карту, приложение выдаёт ошибку. Вот скриншот.",
+    userImage: ERROR_SCREENSHOT,
+    operatorReply: "Здравствуйте! Спасибо, что прислали скриншот ошибки при привязке карты. Сейчас проверю информацию и подскажу дальнейшие действия. Если потребуется дополнительная информация, обязательно сообщу. Если у вас будут другие вопросы — пожалуйста, напишите нам. Поможем разобраться.",
+    violations: ["no_apology"], 
+    explanation: "На скриншоте видна ошибка приложения — это наш технический сбой. В такой ситуации необходимо извиниться перед пользователем за доставленные неудобства. Оператор этого не сделал, хотя благодарность и готовность помочь присутствуют. Это нарушение чек-листа ОКК."
+  },
+
+  /* КЕЙС 2. Забытая вещь (Нарушение: раннее завершение диалога) */
+  {
+    category: "Забытая вещь",
+    role: "Пассажир",
+    roleLabel: "Пассажир",
+    avatar: "passenger",
+    avatarIcon: "👩",
+    userMessage: "Я оставила в машине сумку с документами. Очень переживаю, помогите найти.",
+    operatorReply: "Здравствуйте! Понимаем ваше беспокойство по поводу забытой в автомобиле вещи. Чтобы мы могли помочь с поиском, пожалуйста, уточните дату поездки и адрес подачи автомобиля. Спасибо за обращение, хорошего дня!",
+    violations: ["early_close"], 
+    explanation: "Оператор проявил эмпатию (присоединение) и попросил данные, но в конце сразу попрощался и поблагодарил за обращение, хотя диалог ещё не закончен (пользователь ещё не получил помощь). Это нарушение чек-листа ОКК."
+  },
+
+  /* КЕЙС 3. Отказ водителя (Нарушение: стоп-фразы) */
+  {
+    category: "Отказ водителя",
+    role: "Пассажир",
+    roleLabel: "Пассажир",
+    avatar: "passenger",
+    avatarIcon: "👩",
+    userMessage: "Водитель отказался ехать на мой заказ и сказал отменить поездку. Что делать?",
+    operatorReply: "Здравствуйте! Извините, что водитель отказался ехать на ваш заказ. Вы не обязаны отменять поездку по просьбе водителя. Мы не можем повлиять на водителя, ожидайте. Если водитель не хочет выполнять заказ, он должен самостоятельно обратиться в поддержку.",
+    violations: ["refuse"], 
+    explanation: "Оператор использовал стоп-фразы «Мы не можем» и «Ожидайте» без пояснения, чего именно ждать. Это прямое нарушение чек-листа ОКК.",
+    customComments: {
+      no_empathy: "Ошибка: эмпатия здесь есть (извинение). В данной ситуации важно именно извиниться, так как это ошибка водителя (он не может просить отменить заказ, когда уже взял его и приехал)."
+    }
+  },
+
+  /* КЕЙС 4. Долгое ожидание возврата (Нарушение: нет извинения) */
+  {
+    category: "Долгое ожидание",
+    role: "Пассажир",
+    roleLabel: "Пассажир",
+    avatar: "passenger",
+    avatarIcon: "👩",
+    userMessage: "Я уже второй день жду возврата денег за отменённую поездку. Почему так долго?",
+    operatorReply: "Здравствуйте! Возврат средств происходит автоматически после отмены поездки. Срок зачисления зависит от вашего банка. Если у вас будут вопросы, напишите нам.",
+    violations: ["no_apology"], 
+    explanation: "Пользователь долго ждёт возврат (второй день) — это основание для извинения. Оператор не извинился, а просто объяснил процесс. Это нарушение чек-листа ОКК."
+  },
+
+  /* КЕЙС 5. Долгое ожидание машины (Нарушения: грубые формулировки, нет эмпатии) */
+  {
+    category: "Долгое ожидание",
+    role: "Пассажир",
+    roleLabel: "Пассажир",
+    avatar: "passenger",
+    avatarIcon: "👩",
+    userMessage: "Я жду машину уже 20 минут, водитель не отвечает и не едет. Что происходит?",
+    operatorReply: "Здравствуйте! Я понимаю ваши эмоции, но вы тоже должны понимать, что водитель может попасть в пробку.",
+    violations: ["rude", "no_empathy"], 
+    explanation: "Здесь два нарушения: грубая формулировка («вы тоже должны понимать» — перекладывание вины) и отсутствие эмпатии (нет присоединения, нет готовности помочь)."
+  }
+];
+
+/* ============================================================
+   СОСТОЯНИЕ
+   ============================================================ */
+const state = {
+  queue: [],
+  pos: 0,
+  answers: {},
+  answered: false
+};
+
+/* ============================================================
+   ЭЛЕМЕНТЫ
+   ============================================================ */
+const el = {
+  screenStart: document.getElementById('screenStart'),
+  screenTask: document.getElementById('screenTask'),
+  screenResult: document.getElementById('screenResult'),
+  startBtn: document.getElementById('startBtn'),
+  checkBtn: document.getElementById('checkBtn'),
+  restartBtn: document.getElementById('restartBtn'),
+  errorsBtn: document.getElementById('errorsBtn'),
+  progressBar: document.getElementById('progressBar'),
+  progressLabel: document.getElementById('progressLabel'),
+  caseCategory: document.getElementById('caseCategory'),
+  caseRole: document.getElementById('caseRole'),
+  caseChat: document.getElementById('caseChat'),
+  checklistContainer: document.getElementById('checklistContainer'),
+  feedback: document.getElementById('feedback'),
+  resultEmoji: document.getElementById('resultEmoji'),
+  resultWish: document.getElementById('resultWish'),
+  resultSub: document.getElementById('resultSub')
+};
+
+/* ============================================================
+   НАВИГАЦИЯ
+   ============================================================ */
+function showScreen(name){
+  [el.screenStart, el.screenTask, el.screenResult].forEach(s => s.classList.remove('active'));
+  if(name === 'start')  el.screenStart.classList.add('active');
+  if(name === 'task')   el.screenTask.classList.add('active');
+  if(name === 'result') el.screenResult.classList.add('active');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+/* ============================================================
+   ЗАПУСК
+   ============================================================ */
+function startAllRun(){
+  state.queue = cases.map((_, i) => i);
+  state.pos = 0;
+  state.answers = {};
+  state.answered = false;
+  renderTask();
+  showScreen('task');
+}
+
+function startErrorsRun(){
+  const wrong = getWrongIndices();
+  if(wrong.length === 0) return;
+  state.queue = wrong;
+  state.pos = 0;
+  state.answered = false;
+  renderTask();
+  showScreen('task');
+}
+
+function getWrongIndices(){
+  return cases.map((_, i) => i)
+              .filter(i => state.answers[i] && !state.answers[i].correct);
+}
+
+/* ============================================================
+   ОТРИСОВКА ЗАДАНИЯ
+   ============================================================ */
+function renderTask(){
+  const caseIndex = state.queue[state.pos];
+  const c = cases[caseIndex];
+  state.answered = false;
+
+  el.caseCategory.textContent = c.category;
+  el.caseRole.textContent = c.role;
+
+  const avatarRole = c.avatar;
+  const avatarIcon = c.avatarIcon;
+
+  let chatHtml = '';
+
+  let imageHtml = '';
+  if(c.userImage){
+    imageHtml = `<img src="${c.userImage}" class="chat-image" alt="Скриншот от пользователя">`;
+  }
+
+  chatHtml += `
+    <div class="chat-row user">
+      <div class="chat-avatar ${avatarRole}">${avatarIcon}</div>
+      <div class="chat-bubble user">
+        <span class="chat-name">${c.roleLabel}</span>
+        <div class="chat-text">${c.userMessage}</div>
+        ${imageHtml}
+      </div>
+    </div>
+  `;
+
+  chatHtml += `
+    <div class="chat-row operator">
+      <div class="chat-bubble operator">
+        <span class="chat-name">Оператор</span>
+        <div class="chat-text">${c.operatorReply}</div>
+      </div>
+      <div class="chat-avatar operator">🎧</div>
+    </div>
+  `;
+
+  el.caseChat.innerHTML = chatHtml;
+
+  /* Рендер чек-листа */
+  let checkHtml = '';
+  CHECKLIST_ITEMS.forEach(item => {
+    checkHtml += `
+      <div class="checklist-item" id="item_${item.id}">
+        <div class="checklist-top">
+          <input type="checkbox" id="chk_${item.id}" value="${item.id}">
+          <div class="checklist-text">${item.text}</div>
+        </div>
+        <div class="checklist-comment" id="comment_${item.id}" style="display:none;"></div>
+      </div>
+    `;
+  });
+  el.checklistContainer.innerHTML = checkHtml;
+
+  el.feedback.innerHTML = '';
+  el.feedback.classList.remove('visible');
+
+  el.checkBtn.disabled = false;
+  el.checkBtn.textContent = 'Проверить ответ';
+
+  const pct = (state.pos / state.queue.length) * 100;
+  el.progressBar.style.width = pct + '%';
+  el.progressLabel.textContent = `Задание ${state.pos + 1} из ${state.queue.length}`;
+}
+
+/* ============================================================
+   ПРОВЕРКА
+   ============================================================ */
+function checkAnswer(){
+  const caseIndex = state.queue[state.pos];
+  const c = cases[caseIndex];
+
+  el.checkBtn.disabled = true;
+
+  const actualViolations = c.violations;
+  let isPerfect = true;
+
+  /* Итерируемся по всем пунктам чек-листа */
+  CHECKLIST_ITEMS.forEach(item => {
+    const cb = document.getElementById('chk_' + item.id);
+    const itemDiv = document.getElementById('item_' + item.id);
+    const commentDiv = document.getElementById('comment_' + item.id);
+    
+    const isChecked = cb.checked;
+    const isViolation = actualViolations.includes(item.id);
+
+    cb.disabled = true;
+
+    if (isChecked && isViolation) {
+      // Верно отмечено (зеленый)
+      itemDiv.classList.add('state-correct');
+    } 
+    else if (!isChecked && !isViolation) {
+      // Верно не отмечено (оставляем как есть, без окраски)
+      itemDiv.style.opacity = '0.6'; 
+    }
+    else if (isChecked && !isViolation) {
+      // Ошибка: отметил, но нарушения нет (красный)
+      isPerfect = false;
+      itemDiv.classList.add('state-error');
+      commentDiv.style.display = 'block';
+      
+      // Проверяем кастомные комментарии
+      if (c.customComments && c.customComments[item.id]) {
+        commentDiv.textContent = c.customComments[item.id];
+      } else {
+        commentDiv.textContent = 'Ошибка: в ответе оператора этого нарушения нет.';
+      }
+    } 
+    else if (!isChecked && isViolation) {
+      // Ошибка: не отметил, но нарушение есть (красный)
+      isPerfect = false;
+      itemDiv.classList.add('state-error');
+      commentDiv.style.display = 'block';
+      commentDiv.textContent = 'Ошибка: это нарушение есть в ответе, но ты его не отметил.';
+    }
+  });
+
+  /* Вердикт */
+  let verdictClass = isPerfect ? 'verdict-green' : 'verdict-red';
+  let verdictText = isPerfect ? "✅ Идеально! Ты точно определил все нарушения." : "❌ Есть неточности в оценке. Посмотри комментарии в чек-листе.";
+
+  let html = `<div class="verdict ${verdictClass}">
+    <div class="verdict-title">${verdictText}</div>
+  </div>`;
+
+  /* Объяснение по кейсу */
+  html += `<div class="feedback-block">
+    <h4>Почему так</h4>
+    <p>${c.explanation}</p>
+  </div>`;
+
+  el.feedback.innerHTML = html;
+  el.feedback.classList.add('visible');
+
+  state.answers[caseIndex] = { correct: isPerfect };
+  state.answered = true;
+
+  el.checkBtn.textContent = (state.pos === state.queue.length - 1) ? 'Завершить' : 'Далее →';
+  el.checkBtn.disabled = false;
+
+  el.feedback.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+/* ============================================================
+   СЛЕДУЮЩИЙ ШАГ
+   ============================================================ */
+function nextTask(){
+  if(state.pos < state.queue.length - 1){
+    state.pos++;
+    renderTask();
+    window.scrollTo({top:0, behavior:'smooth'});
+  } else {
+    showResults();
+  }
+}
+
+/* ============================================================
+   РЕЗУЛЬТАТЫ
+   ============================================================ */
+function showResults(){
+  const total = state.queue.length;
+  const correct = state.queue.filter(i => state.answers[i] && state.answers[i].correct).length;
+  const ratio = total > 0 ? correct / total : 0;
+
+  let emoji, wish, sub;
+
+  if(ratio === 1){
+    emoji = "🏆";
+    wish = "Идеально! Ты точно видишь все нарушения по чек-листу ОКК.";
+    sub  = "Настоящий контроль качества — это внимательность к деталям и понимание каждого пункта.";
+  } else if(ratio >= 0.6){
+    emoji = "🌟";
+    wish = "Хороший результат! Большинство нарушений ты определил верно.";
+    sub  = "Пересмотри кейсы с неточностями и попробуй снова.";
+  } else {
+    emoji = "🌱";
+    wish = "Начало положено! Внимательно изучи чек-лист и попробуй ещё раз.";
+    sub  = "С каждым разом будет получаться точнее — главное, тренироваться.";
+  }
+
+  el.resultEmoji.textContent = emoji;
+  el.resultWish.textContent = wish;
+  el.resultSub.textContent = sub;
+
+  const wrong = getWrongIndices();
+  el.errorsBtn.style.display = (wrong.length > 0) ? 'inline-flex' : 'none';
+
+  el.progressBar.style.width = '100%';
+  el.progressLabel.textContent = 'Готово';
+  showScreen('result');
+}
+
+/* ============================================================
+   ОБРАБОТЧИКИ
+   ============================================================ */
+el.startBtn.addEventListener('click', startAllRun);
+
+el.checkBtn.addEventListener('click', () => {
+  if(state.answered){
+    nextTask();
+  } else {
+    checkAnswer();
+  }
+});
+
+el.restartBtn.addEventListener('click', startAllRun);
+el.errorsBtn.addEventListener('click', startErrorsRun);
+</script>
+</body>
+</html>
